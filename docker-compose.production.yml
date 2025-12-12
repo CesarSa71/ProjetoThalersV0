@@ -28,7 +28,7 @@ services:
       - "${APP_PORT:-8080}:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=https://0.0.0.0:8080
+      - ASPNETCORE_URLS=http://0.0.0.0:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-ThalersDb};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgresPassword}
     depends_on:
       postgres:
