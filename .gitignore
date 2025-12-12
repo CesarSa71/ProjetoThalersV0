@@ -1,0 +1,32 @@
+# Certificados HTTPS - NUNCA commitar!
+certs/
+*.pfx
+*.p12
+*.key
+*.crt
+*.pem
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vs/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

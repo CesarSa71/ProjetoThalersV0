@@ -21,6 +21,9 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
+# Create directory for HTTPS certificates
+RUN mkdir -p /https
+
 # Copy published app
 COPY --from=publish /app/publish .
 
