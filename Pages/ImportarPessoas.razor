@@ -1,0 +1,284 @@
+@page "/importar-pessoas"
+@using Projeto1.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Linq
+@inject IImportService ImportService
+@inject ILogger<ImportarPessoas> Logger
+
+<PageTitle>Importar Pessoas</PageTitle>
+
+<div class="container mt-4">
+    <h2>Importar Pessoas do CSV</h2>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="mb-3">
+                <p class="text-muted mb-2">
+                    <strong>Arquivo:</strong> <code>@caminhoArquivo</code>
+                </p>
+                @if (!string.IsNullOrEmpty(caminhoCompletoUsado))
+                {
+                    <p class="text-muted small mb-0">
+                        <strong>Caminho completo:</strong> <code class="small">@caminhoCompletoUsado</code>
+                    </p>
+                }
+            </div>
+
+            <button class="btn btn-primary btn-lg" @onclick="Importar" disabled="@isImportando" type="button">
+                @if (isImportando)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <text>Importando...</text>
+                }
+                else
+                {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload me-2" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                    </svg>
+                    <text>Iniciar Importação</text>
+                }
+            </button>
+            
+            @if (isImportando)
+            {
+                <div class="mt-3">
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                            <span class="fw-bold">Processando...</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensagem))
+    {
+        <div class="alert @(sucesso ? "alert-success" : "alert-danger") alert-dismissible fade show mt-3" role="alert">
+            <h5 class="alert-heading">
+                @if (sucesso)
+                {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-check-circle-fill me-2" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 2.384 5.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                    </svg>
+                    <text>Sucesso!</text>
+                }
+                else
+                {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-exclamation-triangle-fill me-2" viewBox="0 0 16 16">
+                        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                    <text>Erro!</text>
+                }
+            </h5>
+            <p class="mb-0">@mensagem</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (resultadoImportacao != null)
+    {
+        var resultado = resultadoImportacao.Value;
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Resultado da Importação</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Total de linhas processadas:</strong> @resultado.total</p>
+                <p><strong>Registros importados:</strong> <span class="text-success">@resultado.imported</span></p>
+                <p><strong>Erros:</strong> <span class="text-danger">@resultado.errors</span></p>
+
+                @if (resultado.errorMessages != null && resultado.errorMessages.Count > 0)
+                {
+                    <div class="mt-4">
+                        <h6 class="text-danger mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-exclamation-circle me-2" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+                            </svg>
+                            Mensagens de Erro (@resultado.errorMessages.Count)
+                        </h6>
+                        <div class="alert alert-warning border-warning" style="max-height: 400px; overflow-y: auto;">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead class="table-warning">
+                                        <tr>
+                                            <th style="width: 80px;">#</th>
+                                            <th>Erro</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (resultado.errorMessages != null)
+                                        {
+                                            int index = 1;
+                                            foreach (var erro in resultado.errorMessages.Take(100))
+                                            {
+                                                <tr>
+                                                    <td class="text-muted small">@index</td>
+                                                    <td class="small">@(erro ?? "Erro desconhecido")</td>
+                                                </tr>
+                                                index++;
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            @if (resultado.errorMessages.Count > 100)
+                            {
+                                <div class="mt-2 text-center">
+                                    <small class="text-muted">
+                                        <em>... e mais @(resultado.errorMessages.Count - 100) erros não exibidos</em>
+                                    </small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    // Caminho fixo do arquivo
+    private const string caminhoArquivo = "Docs/Rel_Clientes_20251021031018.csv";
+    private string? caminhoCompletoUsado;
+    private bool isImportando = false;
+    private string? mensagem;
+    private bool sucesso = false;
+    private (int total, int imported, int errors, List<string> errorMessages)? resultadoImportacao;
+
+    private async Task Importar()
+    {
+        Logger.LogInformation("Método Importar chamado");
+        Logger.LogInformation($"Caminho do arquivo: {caminhoArquivo}");
+        
+        isImportando = true;
+        mensagem = "Iniciando importação...";
+        sucesso = false;
+        resultadoImportacao = null;
+        caminhoCompletoUsado = null;
+        await Task.Delay(10); // Pequeno delay para garantir que a UI atualize
+        StateHasChanged();
+
+        try
+        {
+            // Resolver caminho relativo ou absoluto
+            string caminhoCompleto;
+            if (Path.IsPathRooted(caminhoArquivo))
+            {
+                caminhoCompleto = caminhoArquivo;
+            }
+            else
+            {
+                // Tentar múltiplos caminhos possíveis
+                var possiveisCaminhos = new List<string>();
+                
+                // 1. Diretório atual de trabalho
+                possiveisCaminhos.Add(Path.Combine(Directory.GetCurrentDirectory(), caminhoArquivo));
+                
+                // 2. Diretório base da aplicação (removendo bin/Debug/net9.0)
+                var basePath = AppContext.BaseDirectory;
+                var projectRoot = basePath;
+                while (projectRoot.Contains("bin") || projectRoot.Contains("obj"))
+                {
+                    var parent = Directory.GetParent(projectRoot);
+                    if (parent == null) break;
+                    projectRoot = parent.FullName;
+                }
+                possiveisCaminhos.Add(Path.Combine(projectRoot, caminhoArquivo));
+                
+                // 3. Caminho absoluto baseado no workspace
+                var workspacePath = "/Users/cesarsa/Desktop/Projeto Thalers/Projeto1";
+                possiveisCaminhos.Add(Path.Combine(workspacePath, caminhoArquivo));
+                
+                // Encontrar o primeiro caminho que existe
+                caminhoCompleto = possiveisCaminhos.FirstOrDefault(File.Exists) ?? possiveisCaminhos.First();
+            }
+
+            caminhoCompletoUsado = caminhoCompleto;
+            Logger.LogInformation($"Tentando importar arquivo: {caminhoCompleto}");
+            Logger.LogInformation($"Arquivo existe: {File.Exists(caminhoCompleto)}");
+
+            if (!File.Exists(caminhoCompleto))
+            {
+                mensagem = $"Arquivo não encontrado: {caminhoCompleto}";
+                sucesso = false;
+                StateHasChanged();
+                return;
+            }
+
+            mensagem = "Processando arquivo...";
+            StateHasChanged();
+
+            try
+            {
+                resultadoImportacao = await ImportService.ImportarCsvAsync(caminhoCompleto);
+            }
+            catch (Exception serviceEx)
+            {
+                Logger.LogError(serviceEx, "Erro no serviço de importação");
+                mensagem = $"Erro no serviço de importação: {serviceEx.Message}";
+                if (serviceEx.InnerException != null)
+                {
+                    mensagem += $" Detalhes: {serviceEx.InnerException.Message}";
+                }
+                sucesso = false;
+                resultadoImportacao = (0, 0, 1, new List<string> { mensagem });
+                return;
+            }
+
+            if (resultadoImportacao.HasValue)
+            {
+                var resultado = resultadoImportacao.Value;
+                try
+                {
+                    if (resultado.errors == 0)
+                    {
+                        mensagem = $"Importação concluída com sucesso! {resultado.imported} registros importados.";
+                        sucesso = true;
+                    }
+                    else if (resultado.imported > 0)
+                    {
+                        mensagem = $"Importação parcial: {resultado.imported} registros importados, {resultado.errors} erros encontrados.";
+                        sucesso = false;
+                    }
+                    else
+                    {
+                        mensagem = $"Falha na importação: {resultado.errors} erros encontrados.";
+                        sucesso = false;
+                    }
+                }
+                catch (Exception resultEx)
+                {
+                    Logger.LogError(resultEx, "Erro ao processar resultado");
+                    mensagem = $"Erro ao processar resultado: {resultEx.Message}";
+                    sucesso = false;
+                }
+            }
+            else
+            {
+                mensagem = "Erro: Nenhum resultado retornado da importação.";
+                sucesso = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagem = $"Erro ao importar: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                mensagem += $" Detalhes: {ex.InnerException.Message}";
+            }
+            sucesso = false;
+            Logger.LogError(ex, "Erro ao importar CSV");
+        }
+        finally
+        {
+            isImportando = false;
+            StateHasChanged();
+        }
+    }
+}
+

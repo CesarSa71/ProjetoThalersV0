@@ -1,0 +1,330 @@
+@page "/login"
+@page "/"
+@using Projeto1.Services
+@using Projeto1.Data
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@inject IAuthService AuthService
+@inject ITokenService TokenService
+@inject IEmailService EmailService
+@inject NavigationManager Navigation
+
+<PageTitle>Login</PageTitle>
+
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 100%);
+        background-size: 400% 400%;
+        animation: gradientShift 15s ease infinite;
+        padding: 20px;
+    }
+
+    @@keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 40px;
+        width: 100%;
+        max-width: 450px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    }
+
+    .user-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .user-icon svg {
+        width: 40px;
+        height: 40px;
+        fill: white;
+        opacity: 0.9;
+    }
+
+    .input-group-custom {
+        position: relative;
+        margin-bottom: 25px;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        fill: white;
+        opacity: 0.8;
+        z-index: 1;
+    }
+
+    .input-field {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+        padding: 15px 15px 15px 50px;
+        color: white;
+        font-size: 16px;
+        border-radius: 0;
+        transition: all 0.3s ease;
+    }
+
+    .input-field::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .input-field:focus {
+        outline: none;
+        border-bottom: 2px solid white;
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .input-label {
+        color: white;
+        font-size: 14px;
+        margin-bottom: 8px;
+        display: block;
+        font-weight: 300;
+    }
+
+    .options-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .remember-me {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: white;
+        font-size: 14px;
+    }
+
+    .checkbox-custom {
+        width: 20px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-radius: 4px;
+        cursor: pointer;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .checkbox-custom input {
+        opacity: 0;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    .checkbox-custom svg {
+        width: 14px;
+        height: 14px;
+        fill: white;
+        display: none;
+    }
+
+    .checkbox-custom input:checked ~ svg {
+        display: block;
+    }
+
+    .forgot-password {
+        color: white;
+        text-decoration: none;
+        font-size: 14px;
+        transition: opacity 0.3s ease;
+    }
+
+    .forgot-password:hover {
+        opacity: 0.8;
+    }
+
+    .login-button {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #4facfe 100%);
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .login-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .login-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .alert-message {
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        color: white;
+        font-size: 14px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+    }
+
+    .alert-danger {
+        background: rgba(220, 53, 69, 0.3);
+        border: 1px solid rgba(220, 53, 69, 0.5);
+    }
+
+    .alert-success {
+        background: rgba(40, 167, 69, 0.3);
+        border: 1px solid rgba(40, 167, 69, 0.5);
+    }
+
+    .validation-message {
+        color: #ffcccc;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    .link-to-token {
+        text-align: center;
+        margin-top: 20px;
+        color: white;
+        font-size: 14px;
+    }
+
+    .link-to-token a {
+        color: white;
+        text-decoration: none;
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+    }
+
+    .link-to-token a:hover {
+        opacity: 1;
+    }
+</style>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="user-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+        </div>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert-message @(isError ? "alert-danger" : "alert-success")">
+                @message
+            </div>
+        }
+
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            
+            <div class="input-group-custom">
+                <label class="input-label">Email ID</label>
+                <div style="position: relative;">
+                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                    <InputText id="email" class="input-field" placeholder="Digite seu e-mail" @bind-value="loginModel.Email" />
+                </div>
+                <ValidationMessage For="@(() => loginModel.Email)" class="validation-message" />
+            </div>
+
+            <button type="submit" class="login-button" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span>Enviando...</span>
+                }
+                else
+                {
+                    <span>LOGIN</span>
+                }
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string message = string.Empty;
+    private bool isError = false;
+    private bool isLoading = false;
+
+    private class LoginModel
+    {
+        [Required(ErrorMessage = "E-mail é obrigatório")]
+        [EmailAddress(ErrorMessage = "E-mail inválido")]
+        public string Email { get; set; } = string.Empty;
+    }
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        message = string.Empty;
+        isError = false;
+
+        try
+        {
+            var userExists = await AuthService.UserExistsAsync(loginModel.Email);
+            
+            if (userExists)
+            {
+                var token = TokenService.GenerateToken();
+                TokenService.StoreToken(loginModel.Email, token);
+                await EmailService.SendTokenEmailAsync(loginModel.Email, token);
+                
+                message = "Token enviado para seu e-mail! Verifique sua caixa de entrada.";
+                Navigation.NavigateTo($"/validate-token?email={Uri.EscapeDataString(loginModel.Email)}");
+            }
+            else
+            {
+                message = "E-mail não encontrado na base de dados.";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Erro ao processar solicitação: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
